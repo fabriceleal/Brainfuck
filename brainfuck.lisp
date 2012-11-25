@@ -80,37 +80,39 @@
 
 ; Create a closured environment for manipulating a vm
 (defun make-bf-vm () 
-  (let ((mem (make-array *mem-size* :element-type 'integer :initial-element 0)) (i 0))
-      #'(lambda (command)
-	  (cond 
-; Pointer manipulation
-	    ;; Manipulate pointer
-	    ((eql command '>) (setf i (+ i 1)) (values command i))
-	    ((eql command '<) (setf i (- i 1)) (values command i))
+  (let* ((mem (make-array *mem-size* :element-type 'integer :initial-element 0)) (i 0))
+    (labels ((manipulator (command)
+	     (cond 
+	       ;; Pointer manipulation
+	       ((eql command '>) (setf i (+ i 1)) (values command i))
+	       ((eql command '<) (setf i (- i 1)) (values command i))
 
-	    ;; Manipulate memory
-	    ((eql command '+) (values command (setf (aref mem i) (+ (aref mem i) 1))))
-	    ((eql command '-) (values command (setf (aref mem i) (- (aref mem i) 1))))
+	       ;; Manipulate memory
+	       ((eql command '+) (values command (setf (aref mem i) (+ (aref mem i) 1))))
+	       ((eql command '-) (values command (setf (aref mem i) (- (aref mem i) 1))))
 
-	    ;; output
-	    ((eql command '|.|) (format t "~c" (code-char (aref mem i))) (values command t))
+	       ;; output
+	       ((eql command '|.|) (format t "~c" (code-char (aref mem i))) (values command t))
 	    
-	    ;; input and store
-	    ((eql command '|,|) nil)
+	       ;; input and store
+	       ((eql command '|,|) nil)
 
-	    ((and (listp command) (eql (car command) 'LOOP)) 
-	     ; Evaluate commands in (cdr command) until (eql (aref mem i) 0)
-	     (let ((commands (cdr command)))
-	       
-		 (values command nil)))
+	       ((and (listp command) (eql (car command) 'LOOP)) 
+	       ; Evaluate commands in (cdr command) until (eql (aref mem i) 0)
+		(let ((commands (cdr command)) (it 0))
+		  (loop for it from 1 to 999999 until (eql (aref mem i) 0)
+		    do (mapcar #'manipulator commands))
+		  (values command it)))
 
-; Asks for the closured values
-	    ((eql command '?i) (values command i))
-	    ((eql command '?mem) (values command mem))
-	    ((eql command '?cur) (values command (aref mem i)))
+	       ; Asks for the closured values
+	       ((eql command '?i) (values command i))
+	       ((eql command '?mem) (values command mem))
+	       ((eql command '?cur) (values command (aref mem i)))
 
 
-	    (t (values command nil))))))
+	       (t (values command nil)))) )
+
+      #'manipulator) ))
 
 ; Generates a brainfuck lexer-parser for lists of instructions
 (defun make-bf()
