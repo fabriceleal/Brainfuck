@@ -17,6 +17,9 @@
 		     (t 'ignore))))
 	      (values terminal value))))))
 
+;(defun read-file-as-list (filename)
+;  )
+
 ; Grammar 
 
 ; expression := <
@@ -93,22 +96,28 @@
 
 	       ;; output
 	       ((eql command '|.|) (format t "~c" (code-char (aref mem i))) (values command t))
-	    
-	       ;; input and store
+	       ;((eql command '|.|) (print (aref mem i)) (values command t))
+
+	       ;; TODO input and store
 	       ((eql command '|,|) nil)
 
-	       ((and (listp command) (eql (car command) 'LOOP)) 
 	       ; Evaluate commands in (cdr command) until (eql (aref mem i) 0)
-		(let ((commands (cdr command)) (it 0))
-		  (loop for it from 1 to 999999 until (eql (aref mem i) 0)
-		    do (mapcar #'manipulator commands))
-		  (values command it)))
+	       ((and (listp command) (eql (car command) 'LOOP)) 
+		(let ((commands (cdr command)) (itr 0))
+		     (loop until (eql (aref mem i) 0)
+			do (mapcar #'manipulator commands))
+		     (values command 'looped)
+		  ))
 
+	       ((and (listp command) (eql (car command) 'BUNCH))
+		(let ((commands (cdr command)))
+		  (mapcar #'manipulator commands)
+		  (values command 'bunched)))
+	       
 	       ; Asks for the closured values
 	       ((eql command '?i) (values command i))
 	       ((eql command '?mem) (values command mem))
 	       ((eql command '?cur) (values command (aref mem i)))
-
 
 	       (t (values command nil)))) )
 
@@ -119,5 +128,7 @@
   #'(lambda (list)
       (parse-with-lexer (bf-lexer-list list) *bf-parser*)))
 
-(defvar *bf* (make-bf))
-(defvar *bf-vm* (make-bf-vm))
+;(defvar *bf* (make-bf))
+;(defvar *bf-vm* (make-bf-vm))
+
+(funcall (make-bf-vm) '(BUNCH + + + + + + + + + + (LOOP > + + + + + + + > + + + + + + + + + + > + + + > + < < < < - ) > + + |.| > + |.| + + + + + + + |.| |.| + + + |.| > + + |.| < < + + + + +  + + + + + + + + + + |.| > |.| + + + |.| - - - - - - |.| - - - - - - - - |.| > + |.| > |.| ))
