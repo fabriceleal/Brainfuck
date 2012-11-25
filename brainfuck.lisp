@@ -27,12 +27,17 @@
 ; expression := ,
 ; expression := [
 ; expression := ]
+; expression := expression expression?
 
 (define-parser *bf-parser*
-    (:start-symbol expression)
-  (:terminals (< > + - |.| |,| [ ]))
+    (:start-symbol expressions)
+  (:terminals (< > + - |.| |,| [ ] 'ignore))
   
-  (expression 
+  (expressions
+   expression (expression expressions)
+   )
+
+  (expression
    <
    >
    +
@@ -41,6 +46,10 @@
    |,|
    [
    ]
-   expression
+   'ignore
    )
 )
+
+(defun bf()
+  #'(lambda (list)
+      (parse-with-lexer (bf-lexer-list list) *bf-parser*)))
