@@ -102,12 +102,21 @@
 
 (defparameter *mem-size* 30000)
 
+; A function which always evaluates to false
+(defun false (&rest whatever)
+  nil)
 
 ; Create a closured environment for manipulating a vm
 (defun make-bf-vm () 
-  (let* ((mem (make-array *mem-size* :element-type 'integer :initial-element 0)) (i 0))
+  (let* ((mem (make-array *mem-size* :element-type 'integer :initial-element 0)) (i 0) (nbr 0))
     (labels ((manipulator (command)
+;	       (setf nbr (+ 1 nbr))
+;	       (print command)
+;	       (print nbr)
 	     (cond 
+
+	       ((eql command :ignore) (values command nil))
+
 	       ;; Pointer manipulation
 	       ((eql command '>) (setf i (+ i 1)) (values command i))
 	       ((eql command '<) (setf i (- i 1)) (values command i))
@@ -126,15 +135,17 @@
 	       ; Evaluate commands in (cdr command) until (eql (aref mem i) 0)
 	       ((and (listp command) (eql (car command) 'LOOP)) 
 		(let ((commands (cdr command)) (itr 0))
-		     (loop until (eql (aref mem i) 0)
-			do (mapcar #'manipulator commands))
+		  (print "start of loop")
+		     (loop until (or (false (print (aref mem i))) (eql (aref mem i) 0))
+			do (mapc #'manipulator commands))
+		     (print "end of loop")
 		     (values command 'looped)
 		  ))
 
 	       ; This is silly, but I'll keep it
 	       ((and (listp command) (eql (car command) 'BUNCH))
 		(let ((commands (cdr command)))
-		  (mapcar #'manipulator commands)
+		  (mapc #'manipulator commands)
 		  (values command 'bunched)))
 	       
 	       ; Asks for the closured values
@@ -166,15 +177,29 @@
     (with-open-file (*standard-input* filename :direction :input)
       ; TEST
       ;(list (parse-with-lexer #'bf-lexer-file *bf-parser*))
-      
-      (mapcar (make-bf-vm) (parse-with-lexer #'bf-lexer-file *bf-parser*))
+      (let ((cs 
+
+      (mapcar 
+       #'identity ;vm 
+       (parse-with-lexer #'bf-lexer-file *bf-parser*))
+	      ))
+
+	(mapc vm cs)
+	;cs
+	)
+
       ; We dont care about the result
-      t
+;      t
 
     ) ))
-; TESTS
-(bf-interpret-file "helloworld.bf")
 
+(print (with-open-file (*standard-input* "minihello2.bf" :direction :input)
+  (mapcar #'identity (parse-with-lexer #'bf-lexer-file *bf-parser*))))
+
+; TESTS
+;(bf-interpret-file "helloworld.bf")
+;(print (list-length (bf-interpret-file "minitest.bf")))
+;(print (list-length (bf-interpret-file "minihello2.bf")))
 
 ; Hello world in lispif'ed brainfuck
 ;(mapcar (make-bf-vm) 
