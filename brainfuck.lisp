@@ -14,8 +14,30 @@
 	    (let ((terminal 
 		   (cond 
 		     ((member value '(> < + - |.| |,| [ ])) value) ; Return value itself
-		     (t 'ignore))))
+		     (t :ignore))))
 	      (values terminal value))))))
+
+(defun bf-lexer-file (&optional (stream *standard-input*))
+      (loop 
+	 (let ((c (read-char stream nil nil)))
+	   (let ((terminal 
+		  (cond 
+		    ((member c '(nil)) 
+		     (return-from bf-lexer-file (values nil nil)))
+
+		    ((eql c #\<) '<)
+		    ((eql c #\>) '>)
+		    ((eql c #\+) '+)
+		    ((eql c #\-) '-)
+		    ((eql c #\.) '|.|)
+		    ((eql c #\,) '|,|)
+		    ((eql c #\[) '[)
+		    ((eql c #\]) '])
+		    
+		    (t :ignore) )))
+	     (return-from bf-lexer-file (values terminal terminal)) )
+      ))) 
+
 
 ;(defun read-file-as-list (filename)
 ;  )
@@ -44,7 +66,7 @@
       ))
 
 (defun copy2-1(list)
-   (aux-copy (cdr list)))
+   (aux-copy2-1 (cdr list)))
 
 ;; Create an entry in the AST for a loop
 
@@ -56,7 +78,7 @@
 
 (define-parser *bf-parser*
     (:start-symbol expressions)
-  (:terminals (< > + - |.| |,| [ ] 'ignore))
+  (:terminals (< > + - |.| |,| [ ] :ignore))
   
   (expressions
    expression (expression expressions #'append)
@@ -74,7 +96,7 @@
    -
    |.|
    |,|
-   'ignore
+   :ignore
    )
 )
 
@@ -109,6 +131,7 @@
 		     (values command 'looped)
 		  ))
 
+	       ; This is silly, but I'll keep it
 	       ((and (listp command) (eql (car command) 'BUNCH))
 		(let ((commands (cdr command)))
 		  (mapcar #'manipulator commands)
@@ -124,11 +147,41 @@
       #'manipulator) ))
 
 ; Generates a brainfuck lexer-parser for lists of instructions
-(defun make-bf()
+(defun make-ls-bf()
   #'(lambda (list)
       (parse-with-lexer (bf-lexer-list list) *bf-parser*)))
+
+; TESTS
+;(funcall (make-ls-bf) '(ignore > > + + + <))
 
 ;(defvar *bf* (make-bf))
 ;(defvar *bf-vm* (make-bf-vm))
 
-(funcall (make-bf-vm) '(BUNCH + + + + + + + + + + (LOOP > + + + + + + + > + + + + + + + + + + > + + + > + < < < < - ) > + + |.| > + |.| + + + + + + + |.| |.| + + + |.| > + + |.| < < + + + + +  + + + + + + + + + + |.| > |.| + + + |.| - - - - - - |.| - - - - - - - - |.| > + |.| > |.| ))
+(defun bf-interpret-file (filename)
+  ; Create brainfuck vm
+  ; Read file, feed to lexer
+  ; Feed symbols to vm
+
+  (let ((vm (make-bf-vm)) (stream nil))
+    (with-open-file (*standard-input* filename :direction :input)
+      ; TEST
+      ;(list (parse-with-lexer #'bf-lexer-file *bf-parser*))
+      
+      (mapcar (make-bf-vm) (parse-with-lexer #'bf-lexer-file *bf-parser*))
+      ; We dont care about the result
+      t
+
+    ) ))
+; TESTS
+(bf-interpret-file "helloworld.bf")
+
+
+; Hello world in lispif'ed brainfuck
+;(mapcar (make-bf-vm) 
+;	'(+ + + + + + + + + + 
+;	  (LOOP > + + + + + + + > + + + + + + + + + + > + + + > + < < < < - ) 
+;	  > + + |.| > + |.| + + + + + + + |.| |.| + + + |.| > + + |.| < < + + + + + 
+;	  + + + + + + + + + + |.| > |.| + + + |.| - - - - - - 
+;	  |.| - - - - - - - - |.| > + |.| > |.| ))
+
+
