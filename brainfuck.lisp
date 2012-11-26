@@ -1,9 +1,7 @@
-#!/usr/bin/clisp
+#!/usr/bin/clisp -i ~/.clisprc.lisp
 
 ;; A brainfuck interpreter in lisp
-
-(load "~/projects/cl-yacc/yacc")
-
+(ql:quickload :yacc)
 (use-package '#:yacc)
 
 ;; Lexer - consume from list
@@ -168,5 +166,6 @@
       ;; We dont care about the result of the application
       t)))
 
-
-(bf-interpret-file (car *args*))
+(let ((filename (car *args*)))
+  (format t "Running \"~$\" as brainfuck script~%~%" filename)
+  (bf-interpret-file (car *args*)))

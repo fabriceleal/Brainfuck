@@ -3,10 +3,17 @@
 
 ## Missing ##
 
-* Input
-* Read .bf file
+* Input (as long as input is missing, rot13.bf wont work!)
+
+## Attention ##
+
+Uses the `quicklisp` system to load the `cl-yacc` package.
 
 ## Usage ##
 
-* As for now, tightly coupled to the cl-yacc package.
+Call it like this:
+
+```shell
+./brainfuck.lisp helloworld.bf
+```
 
