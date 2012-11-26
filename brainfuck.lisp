@@ -1,6 +1,8 @@
+#!/usr/bin/clisp
+
 ;; A brainfuck interpreter in lisp
 
-;(load "~/projects/cl-yacc/yacc.fas")
+(load "~/projects/cl-yacc/yacc")
 
 (use-package '#:yacc)
 
@@ -167,3 +169,4 @@
       t)))
 
 
+(bf-interpret-file (car *args*))
