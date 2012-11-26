@@ -4,7 +4,7 @@
 
 (use-package '#:yacc)
 
-; Lexer - consume from list
+;; Lexer - consume from list
 
 (defun bf-lexer-list (list)
   #'(lambda ()
@@ -13,7 +13,7 @@
 	    (values nil nil)
 	    (let ((terminal 
 		   (cond 
-		     ((member value '(> < + - |.| |,| [ ])) value) ; Return value itself
+		     ((member value '(> < + - |.| |,| [ ])) value)
 		     (t :ignore))))
 	      (values terminal value))))))
 
@@ -38,24 +38,18 @@
 	     (return-from bf-lexer-file (values terminal terminal)) )
       ))) 
 
+;; Grammar 
 
-;(defun read-file-as-list (filename)
-;  )
+;; expression := <
+;; expression := >
+;; expression := +
+;; expression := -
+;; expression := .
+;; expression := ,
+;; expression := [
+;; expression := ]
+;; expression := expression expression?
 
-; Grammar 
-
-; expression := <
-; expression := >
-; expression := +
-; expression := -
-; expression := .
-; expression := ,
-; expression := [
-; expression := ]
-; expression := expression expression?
-
-;(defun bf-flatten (a b)
-;  (append a b))
 
 ;; Drop 1st and last elements of a list
 
@@ -71,7 +65,7 @@
 ;; Create an entry in the AST for a loop
 
 (defun bf-loop (&rest args)
-  ; Drop 1st and last, the [ and ]
+  ;; Drop 1st and last, the [ and ]
   (list (cons 'loop (copy2-1 args))) )
 
 ;; Parser
@@ -102,19 +96,13 @@
 
 (defparameter *mem-size* 30000)
 
-; A function which always evaluates to false
-(defun false (&rest whatever)
-  nil)
-
-; Create a closured environment for manipulating a vm
+;; Create a closured environment for manipulating a vm
 (defun make-bf-vm () 
   (let* ((mem (make-array *mem-size* :element-type 'integer :initial-element 0)) (i 0) (nbr 0))
     (labels ((manipulator (command)
-;	       (setf nbr (+ 1 nbr))
-;	       (print command)
-;	       (print nbr)
 	     (cond 
 
+	       ;; So we dont waste too much time with pointless comparisions
 	       ((eql command :ignore) (values command nil))
 
 	       ;; Pointer manipulation
@@ -127,86 +115,55 @@
 
 	       ;; output
 	       ((eql command '|.|) (format t "~c" (code-char (aref mem i))) (values command t))
-	       ;((eql command '|.|) (print (aref mem i)) (values command t))
 
 	       ;; TODO input and store
 	       ((eql command '|,|) nil)
 
-	       ; Evaluate commands in (cdr command) until (eql (aref mem i) 0)
+	       ;; Evaluate commands in (cadr command) until (eql (aref mem i) 0)
 	       ((and (listp command) (eql (car command) 'LOOP)) 
-		(let ((commands (cdr command)) (itr 0))
-		  (print "start of loop")
-		     (loop until (or (false (print (aref mem i))) (eql (aref mem i) 0))
+		;; cdr of command will be a list; take its car
+		(let ((commands (cadr command)) (itr 0))
+
+		     (loop until (eql (aref mem i) 0)
 			do (mapc #'manipulator commands))
-		     (print "end of loop")
+
 		     (values command 'looped)
 		  ))
 
-	       ; This is silly, but I'll keep it
+	       ;; This is silly, but I'll keep it
 	       ((and (listp command) (eql (car command) 'BUNCH))
 		(let ((commands (cdr command)))
 		  (mapc #'manipulator commands)
 		  (values command 'bunched)))
 	       
-	       ; Asks for the closured values
+	       ;; Asks for the closured values (debug commands)
 	       ((eql command '?i) (values command i))
 	       ((eql command '?mem) (values command mem))
 	       ((eql command '?cur) (values command (aref mem i)))
 
+	       ;; Bah! Feed me with valid commands, you douche!
 	       (t (values command nil)))) )
 
       #'manipulator) ))
 
-; Generates a brainfuck lexer-parser for lists of instructions
+;; Generates a brainfuck lexer-parser for lists of instructions
 (defun make-ls-bf()
   #'(lambda (list)
       (parse-with-lexer (bf-lexer-list list) *bf-parser*)))
 
-; TESTS
-;(funcall (make-ls-bf) '(ignore > > + + + <))
-
-;(defvar *bf* (make-bf))
-;(defvar *bf-vm* (make-bf-vm))
-
+;; Interpret brainfuck source file
+;; Output to default stream
 (defun bf-interpret-file (filename)
-  ; Create brainfuck vm
-  ; Read file, feed to lexer
-  ; Feed symbols to vm
-
+  ;; Create brainfuck vm
   (let ((vm (make-bf-vm)) (stream nil))
+
+    ;; Redirect input, read from file
     (with-open-file (*standard-input* filename :direction :input)
-      ; TEST
-      ;(list (parse-with-lexer #'bf-lexer-file *bf-parser*))
-      (let ((cs 
 
-      (mapcar 
-       #'identity ;vm 
-       (parse-with-lexer #'bf-lexer-file *bf-parser*))
-	      ))
+      ;; Feed parser with result of lexer, fed with *standard-input*
+      (mapc vm (parse-with-lexer #'bf-lexer-file *bf-parser*))
 
-	(mapc vm cs)
-	;cs
-	)
-
-      ; We dont care about the result
-;      t
-
-    ) ))
-
-(print (with-open-file (*standard-input* "minihello2.bf" :direction :input)
-  (mapcar #'identity (parse-with-lexer #'bf-lexer-file *bf-parser*))))
-
-; TESTS
-;(bf-interpret-file "helloworld.bf")
-;(print (list-length (bf-interpret-file "minitest.bf")))
-;(print (list-length (bf-interpret-file "minihello2.bf")))
-
-; Hello world in lispif'ed brainfuck
-;(mapcar (make-bf-vm) 
-;	'(+ + + + + + + + + + 
-;	  (LOOP > + + + + + + + > + + + + + + + + + + > + + + > + < < < < - ) 
-;	  > + + |.| > + |.| + + + + + + + |.| |.| + + + |.| > + + |.| < < + + + + + 
-;	  + + + + + + + + + + |.| > |.| + + + |.| - - - - - - 
-;	  |.| - - - - - - - - |.| > + |.| > |.| ))
+      ;; We dont care about the result of the application
+      t)))
 
 
