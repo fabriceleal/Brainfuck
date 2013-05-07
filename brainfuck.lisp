@@ -168,4 +168,4 @@
 
 (let ((filename (car *args*)))
   (format t "Running \"~$\" as brainfuck script~%~%" filename)
-  (bf-interpret-file (car *args*)))
+  (bf-interpret-file filename))
